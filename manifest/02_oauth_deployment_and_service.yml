@@ -1,0 +1,43 @@
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: oauth-proxy
+  name: oauth-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "oauth-proxy"
+  template:
+    metadata:
+      labels:
+        app: oauth-proxy
+    spec:
+      containers:
+      - name: oauth-proxy
+        image: "quay.io/oauth2-proxy/oauth2-proxy:latest"
+        envFrom:
+        # - configMapRef:
+        #     name: cm-oauth
+        - secretRef:
+            name: cm-oauth
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: oauth-proxy
+  name: oauth-proxy
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4180
+      targetPort: 4180
+      protocol: TCP
+      name: http
+  selector:
+    app: "oauth-proxy"
+---

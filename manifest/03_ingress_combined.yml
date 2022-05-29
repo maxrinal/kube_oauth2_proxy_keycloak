@@ -1,0 +1,71 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/auth-secret: ""
+    nginx.ingress.kubernetes.io/auth-type: ""
+    # https://oak-tree.tech/blog/k8s-nginx-oauth2-gitlab
+    # https://wener.me/notes/service/auth/oauth2-proxy
+    # https://github.com/oauth2-proxy/oauth2-proxy/issues/920
+    # https://github.com/kubernetes/ingress-nginx/issues/8214
+    # https://stackoverflow.com/questions/62438259/kubernetes-nginx-ingress-disable-external-auth-for-specific-path
+    # nginx.ingress.kubernetes.io/auth-url: "http://oauth-proxy.svc:4180/oauth2/auth"
+
+
+    # Como en minikube no resuelve externamente, debemos conectarnos por el nombre del servicio interno
+    # nginx.ingress.kubernetes.io/auth-url: "http://oauth-proxy.$namespace.svc.cluster.local:4180/oauth2/auth"
+    # En otros cluster de kubernetes podemos conectarnos de la siguiente forma directamente
+    nginx.ingress.kubernetes.io/auth-url: "https://$host/oauth2/auth"
+    # nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-signin: "https://$host/oauth2/start?rd=$scheme://$host$request_uri"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    nginx.ingress.kubernetes.io/auth-response-headers: X-Auth-Request-User, X-Auth-Request-Groups, X-Auth-Request-Email, X-Auth-Request-Preferred-Username, X-Auth-Request-Access-Token
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "Off"
+    externaldns: pdns
+  name: app-authenticated
+spec:
+  ingressClassName: nginx-lb
+  rules:
+  - host: cli-test-01.k8s.example.test
+    http:
+      paths:
+      - backend:
+          service:
+            name: simple-httpd-dump
+            port:
+              number: 8080
+        path: /
+        # pathType: ImplementationSpecific
+        pathType: Prefix
+  tls:
+  - hosts:
+    - cli-test-01.k8s.example.test
+    secretName: tls-k8sexample
+---
+# ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    externaldns: pdns
+  name: oauth2-proxy
+spec:
+  ingressClassName: nginx-lb
+  rules:
+  - host: cli-test-01.k8s.example.test
+    http:
+      paths:
+      - backend:
+          service:
+            name: oauth-proxy
+            port: 
+              number: 4180
+        path: /oauth2
+        # pathType: ImplementationSpecific
+        pathType: Prefix
+  tls:
+  - hosts:
+    - cli-test-01.k8s.example.test
+    secretName: tls-k8sexample
+---

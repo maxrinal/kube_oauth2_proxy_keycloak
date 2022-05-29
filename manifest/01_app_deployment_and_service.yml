@@ -1,0 +1,39 @@
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: simple-httpd-dump
+  name: simple-httpd-dump
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "simple-httpd-dump"
+  template:
+    metadata:
+      labels:
+        app: simple-httpd-dump
+    spec:
+      containers:
+      - name: simple-httpd-dump
+        # image: "daime/http-dump:latest"
+        image: "gcr.io/google-containers/echoserver:1.10"
+---
+# service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: simple-httpd-dump
+  name: simple-httpd-dump
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: "simple-httpd-dump"
+---
